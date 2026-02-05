@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import Sidenav from '../components/Sidenav';
 import AccordionDash from '../components/AccordionDash';
@@ -14,8 +14,43 @@ import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import "../Dash.css";
 import BarChart from '../charts/BarChart';
 import CountUp from 'react-countup';
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase-config";
+import { useAppStore } from '../appStore';
 
 export default function Home() {
+  const rows = useAppStore((state) => state.rows);
+  const setRows = useAppStore((state) => state.setRows);
+
+  useEffect(() => {
+    const load = async () => {
+      if (rows && rows.length) return;
+      const snapshot = await getDocs(collection(db, "applications"));
+      const items = snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+      setRows(items);
+    };
+    load();
+  }, [rows, setRows]);
+
+  const totalApplications = useMemo(() => rows?.length || 0, [rows]);
+  const totalNoResponse = useMemo(
+    () =>
+      (rows || []).filter(
+        (r) => String(r?.status || "").toLowerCase() === "no response"
+      ).length,
+    [rows]
+  );
+
+  const totalPending = useMemo(()=>(
+    rows || []).filter(
+      (r)=>String(r?.status || "").toLocaleLowerCase() == "pending"
+    ).length, [rows]
+  );
+
+  const totalRejected = useMemo(()=>(rows || []).filter(
+    (r)=>String(r?.status || "").toLocaleLowerCase() == "rejected"
+  ).length, [rows]);
+
   return (
     <>
     <div className='bgColor'>
@@ -32,7 +67,7 @@ export default function Home() {
                   <CardContent>
                      <div><CreditCardIcon /></div>
                     <Typography gutterBottom variant="h5" component="div">
-                       $<CountUp end={500} duration={0.3} />
+                       <CountUp end={totalApplications} duration={0.3} />
                     </Typography>
                     <Typography gutterBottom variant="body2" component="div" sx={{color: '#fff'}}>
                        Total Applications
@@ -43,7 +78,7 @@ export default function Home() {
                   <CardContent>
                     <div><ShoppingBagIcon /></div>
                     <Typography gutterBottom variant="h5" component="div">
-                       $<CountUp end={900} duration={0.3} />
+                       <CountUp end={totalNoResponse} duration={0.3} />
                     </Typography>
                     <Typography gutterBottom variant="body2" component="div" sx={{color: '#fff'}}>
                        Total No Response
@@ -54,7 +89,7 @@ export default function Home() {
                   <CardContent>
                     <div><ShoppingBagIcon /></div>
                     <Typography gutterBottom variant="h5" component="div">
-                       $<CountUp end={900} duration={0.3} />
+                      <CountUp end={totalPending} duration={0.3} />
                     </Typography>
                     <Typography gutterBottom variant="body2" component="div" sx={{color: '#fff'}}>
                        In Progress
@@ -64,28 +99,17 @@ export default function Home() {
               </Stack>
             </Grid>
             <Grid size={3}>
-              <Stack spacing={2}>
-                <Card sx={{ background: 'linear-gradient(158deg, rgba(63, 94, 251, 1), rgba(252, 70, 107, 1) 100%)', color: 'white' }}>
-                    <Stack spacing={2} direction={'row'}>
-                      <div className='iconstyle'>
-                        <StorefrontIcon />
-                      </div>
-                      <div className='paddingall'>
-                        <span className='priceTitle'>5</span>
-                        <span className='priceSubTitle'>Total Rejected</span>
-                      </div>
-                    </Stack>
-                </Card>
-                <Card sx={{ }}>
-                    <Stack spacing={2} direction={'row'}>
-                      <div className='iconstyle'>
-                        <StorefrontIcon />
-                      </div>
-                      <div className='paddingall'>
-                        <span className='priceTitle'>2</span>
-                        <span className='priceSubTitle'>Total Interview</span>
-                      </div>
-                    </Stack>
+              <Stack spacing={0}>
+                <Card sx={{ width: 100 + '%', height: 150, background: 'linear-gradient(158deg, #e7e7e7 30%, #a4a4a4 90%)', color: 'black' }} >
+                  <CardContent>
+                    <div><ShoppingBagIcon /></div>
+                    <Typography gutterBottom variant="h5" component="div">
+                      <CountUp end={totalRejected} duration={0.3} />
+                    </Typography>
+                    <Typography gutterBottom variant="body2" component="div" sx={{color: '#000'}}>
+                       Rejected
+                    </Typography>
+                  </CardContent>
                 </Card>
               </Stack>
             </Grid>
